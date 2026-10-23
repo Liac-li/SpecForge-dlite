@@ -278,6 +278,8 @@ class ModelConfig(StrictConfigModel):
     #: Load draft weights only. Unlike training.resume_from, this never restores
     #: optimizer/scheduler state, counters, data position, or RNG state.
     draft_checkpoint_path: Optional[str] = None
+    #: Exported HF DLite swa_teacher used to initialize two-stage training.
+    dlite_teacher_checkpoint_path: Optional[str] = None
     #: Optional architecture override. Auto-generated defaults preserve the
     #: former trainers: EAGLE3=1, P-EAGLE=4, DFlash=1.
     draft_num_hidden_layers: Optional[int] = Field(default=None, gt=0)
@@ -1046,6 +1048,16 @@ class TrainingConfig(StrictConfigModel):
     dspark_ce_loss_alpha: float = 0.1
     dspark_l1_loss_alpha: float = 0.9
     dspark_confidence_head_alpha: float = 1.0
+    #: DLite student always has one cosine transition epoch between stages.
+    dlite_mode: Literal["teacher", "two_stage"] = "teacher"
+    dlite_stage1_epochs: int = Field(default=1, gt=0)
+    dlite_stage2_epochs: int = Field(default=6, gt=0)
+    dlite_stage1_kl_weight: float = Field(default=1.0, gt=0)
+    dlite_stage1_loss_decay_gamma: Optional[float] = None
+    dlite_final_ce_weight: float = Field(default=1.0, ge=0)
+    dlite_l1_weight: float = Field(default=1.0, ge=0)
+    dlite_base_ce_weight: float = Field(default=0.0, ge=0)
+    dlite_base_ce_decay_gamma: Optional[float] = None
     #: P-EAGLE COD sampling/model knobs.
     num_depths: int = Field(default=8, gt=0)
     down_sample_ratio: float = 0.8
@@ -1195,6 +1207,39 @@ class Config(StrictConfigModel):
     @model_validator(mode="after")
     def _validate_run_structure(self):
         """Validate topology and cross-field shape without resolving algorithms."""
+
+        if self.training.strategy == "dlite":
+            t = self.training
+            if self.mode != "online" or self.deployment.mode != "disaggregated":
+                raise ValueError("DLite requires online disaggregated training")
+            if t.resume_from is not None:
+                raise ValueError("DLite online full resume is not supported")
+            if t.total_steps is not None:
+                raise ValueError(
+                    "DLite derives total_steps from the producer prompt plan; use max_steps for a short run"
+                )
+            if (
+                t.dlite_final_ce_weight + t.dlite_l1_weight + t.dlite_base_ce_weight
+                <= 0
+            ):
+                raise ValueError("DLite requires at least one supervised loss weight")
+            if t.dlite_mode == "two_stage":
+                if not self.model.dlite_teacher_checkpoint_path:
+                    raise ValueError(
+                        "DLite two_stage requires model.dlite_teacher_checkpoint_path"
+                    )
+                if self.model.draft_model_config or self.model.draft_checkpoint_path:
+                    raise ValueError(
+                        "DLite two_stage derives its config from the teacher and initializes a fresh backbone"
+                    )
+                if t.num_epochs != t.dlite_stage1_epochs + 1 + t.dlite_stage2_epochs:
+                    raise ValueError(
+                        "DLite num_epochs must equal stage1_epochs + 1 + stage2_epochs"
+                    )
+            elif self.model.dlite_teacher_checkpoint_path:
+                raise ValueError(
+                    "dlite_teacher_checkpoint_path is only used by two_stage training"
+                )
         mode = self.mode
         deployment = self.deployment.mode
         role = self.training.role

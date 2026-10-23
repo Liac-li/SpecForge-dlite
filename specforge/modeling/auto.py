@@ -86,6 +86,12 @@ class AutoDraftModelConfig:
         """
         with open(config_path, "r") as f:
             config = json.load(f)
+        return cls.from_dict(config)
+
+    @classmethod
+    def from_dict(cls, config: dict):
+        """Resolve a registered draft from persisted configuration metadata."""
+        config = dict(config)
 
         if "tie_word_embeddings" in config:
             print("Set draft model tie_word_embeddings to False")

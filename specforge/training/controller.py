@@ -458,6 +458,7 @@ class TrainerCore:
         self.backend.backward(loss, is_boundary=stepped)
         grad_norm = None
         if stepped:
+            self.strategy.before_optimizer_step()
             loss_denominator = None
             if out.loss_terms is not None:
                 # A capable backend validates the global denominator in the

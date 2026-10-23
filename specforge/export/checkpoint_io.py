@@ -157,7 +157,7 @@ def checkpoint_dtype(state_dict: Dict[str, Any]) -> Optional[torch.dtype]:
 
 def materialize_draft(
     state: Dict[str, Any],
-    draft_config_path: str,
+    draft_config_path: Optional[str],
     *,
     vocab_mapping_path: Optional[str] = None,
 ):
@@ -174,7 +174,20 @@ def materialize_draft(
     """
     from specforge.modeling.auto import AutoDraftModel, AutoDraftModelConfig
 
-    draft_config = AutoDraftModelConfig.from_file(draft_config_path)
+    if state.get("strategy") == "dlite":
+        # Resolved metadata includes MASK, role, and the inherited student
+        # structure. A teacher recipe JSON cannot describe a student export.
+        draft_config = AutoDraftModelConfig.from_dict(state["draft_config"])
+        if draft_config_path is not None:
+            provided = AutoDraftModelConfig.from_file(draft_config_path)
+            if provided.to_dict() != draft_config.to_dict():
+                raise ValueError(
+                    "DLite export uses the resolved checkpoint config; omit --draft-config"
+                )
+    elif draft_config_path is None:
+        raise ValueError("this checkpoint requires --draft-config")
+    else:
+        draft_config = AutoDraftModelConfig.from_file(draft_config_path)
     torch_dtype = checkpoint_dtype(state["draft_state_dict"]) or torch.bfloat16
     model = AutoDraftModel.from_config(draft_config, torch_dtype=torch_dtype)
     missing, unexpected = model.load_state_dict(state["draft_state_dict"], strict=False)
@@ -182,6 +195,10 @@ def materialize_draft(
         raise ValueError(
             f"checkpoint carries weights the {type(model).__name__} architecture "
             f"does not have: {sorted(unexpected)}"
+        )
+    if state.get("strategy") == "dlite" and missing:
+        raise ValueError(
+            f"DLite checkpoint is missing draft weights: {sorted(missing)}"
         )
     tolerated = {"t2d", "d2t"} if vocab_mapping_path else set()
     non_embed_missing = [

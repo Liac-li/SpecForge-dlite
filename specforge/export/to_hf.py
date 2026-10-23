@@ -29,7 +29,7 @@ from specforge.modeling.target.checkpoint import load_checkpoint_tensors
 
 def export_to_hf(
     checkpoint_path: str,
-    draft_config_path: str,
+    draft_config_path: Optional[str],
     output_dir: str,
     *,
     vocab_mapping_path: Optional[str] = None,

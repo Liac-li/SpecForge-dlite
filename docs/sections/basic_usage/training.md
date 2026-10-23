@@ -18,6 +18,11 @@ there is no compatibility dispatch to the previous trainers.
 
 ## Choose a recipe
 
+For DLite teacher and two-stage student training on four 80 GB GPUs, see the
+[Qwen3.5-9B managed-local recipe](../../recipes/qwen3.5-9b-dlite.md).
+DLite currently provides online text training and official checkpoint export;
+SGLang DLite serving and full managed-local resume are not included.
+
 The config catalog separates three concepts:
 
 | Question | Config source | Catalog level |
@@ -465,6 +470,7 @@ The checked-in examples are the canonical starting points:
 | Domino | Offline colocated | [`qwen3-8b-domino.yaml`](https://github.com/sgl-project/SpecForge/blob/main/examples/configs/offline/colocated/qwen3-8b-domino.yaml) |
 | DSpark | Online disaggregated, external | [`qwen3-4b-dspark.yaml`](https://github.com/sgl-project/SpecForge/blob/main/examples/configs/online/disaggregated/external/qwen3-4b-dspark.yaml) |
 | DSpark | Offline colocated | [`qwen3-4b-dspark.yaml`](https://github.com/sgl-project/SpecForge/blob/main/examples/configs/offline/colocated/qwen3-4b-dspark.yaml) |
+| DLite | Online disaggregated, managed-local | [Qwen3.5-9B teacher and student](../../recipes/qwen3.5-9b-dlite.md) |
 | DFlash (Ascend) | Online disaggregated, external | [`qwen3.5-4b-dflash-npu.yaml`](https://github.com/sgl-project/SpecForge/blob/main/examples/configs/online/disaggregated/external/qwen3.5-4b-dflash-npu.yaml) |
 | MTP (Ascend) | Online disaggregated, managed-local | [`qwen3.5-4b-mtp-npu.yaml`](https://github.com/sgl-project/SpecForge/blob/main/examples/configs/online/disaggregated/managed-local/qwen3.5-4b-mtp-npu.yaml) |
 
@@ -495,6 +501,7 @@ The unified runtime supports text training in these combinations:
 | DFlash/DFlash2 | Yes, consumer DP | Yes, DP | Yes, consumer DP |
 | Domino | Yes, consumer DP | Yes, DP | Yes, consumer DP |
 | DSpark | Yes, consumer DP | Yes, DP | Yes, consumer DP |
+| DLite | Consumer DP; managed-local recipe | No | No |
 | MTP | Yes, consumer DP | Yes, DP | Yes, consumer DP |
 | P-EAGLE | Yes, consumer DP, batch size 1 | No | No |
 

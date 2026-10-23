@@ -213,7 +213,7 @@ class FSDPTrainingBackend(TrainingBackend):
         memory, which is the wrong trade-off for the current trainer recipes.
         """
         modules = []
-        for name in ("lm_head", "embed_tokens"):
+        for name in ("lm_head", "embed_tokens", "teacher_draft"):
             module = getattr(model, name, None)
             if not isinstance(module, nn.Module):
                 continue

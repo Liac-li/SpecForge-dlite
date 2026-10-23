@@ -183,6 +183,7 @@ assume the command runs from the repository root.
 | DFlash 2 online, managed-local stack | [`online/disaggregated/managed-local/qwen3.8-27b-dflash2-4server-dp4.yaml`](online/disaggregated/managed-local/qwen3.8-27b-dflash2-4server-dp4.yaml) |
 | DFlash 2 online, external services on two nodes | [`online/disaggregated/external/qwen3.8-27b-dflash2.yaml`](online/disaggregated/external/qwen3.8-27b-dflash2.yaml) |
 | Domino online, managed-local stack | [`online/disaggregated/managed-local/qwen3-8b-domino-2server-dp2.yaml`](online/disaggregated/managed-local/qwen3-8b-domino-2server-dp2.yaml) |
+| DLite online, managed-local stack | [Teacher](online/disaggregated/managed-local/qwen3.5-9b-dlite-teacher.yaml), then [two-stage student](online/disaggregated/managed-local/qwen3.5-9b-dlite-two-stage.yaml) |
 
 The runtime derives online/offline mode from the selected `data` source and
 reads topology from `deployment.mode`; it does not parse the filename or its
@@ -666,3 +667,22 @@ Migration notes:
 - Qwen3-8B DTA still shares the DFlash trainer, as before. Its specialized
   behavior is encoded by the draft JSON (`training_mode: vp_drafter`); there is
   no second DTA training entry.
+
+## DLite managed-local training
+
+The [Qwen3.5-9B DLite recipe](../../docs/recipes/qwen3.5-9b-dlite.md) uses
+`online/disaggregated/managed-local/qwen3.5-9b-dlite-teacher.yaml` followed by
+`online/disaggregated/managed-local/qwen3.5-9b-dlite-two-stage.yaml`.
+
+| Config field | Meaning |
+| --- | --- |
+| `model.dlite_teacher_checkpoint_path` | Exported HF SWA teacher; required by two-stage student training. |
+| `training.dlite_mode` | `teacher` or `two_stage`. |
+| `training.dlite_stage1_epochs` | Stage 1 step budget in effective epochs; default 1. |
+| `training.dlite_stage2_epochs` | Stage 2 budget; default 6. One transition epoch is added. |
+| `training.dlite_stage1_kl_weight` | Teacher-to-student KL coefficient; default 1. |
+| `training.dlite_stage1_loss_decay_gamma` | Optional exponential position decay for KL. |
+| `training.dlite_final_ce_weight` | CE coefficient on target-prefill argmax labels. |
+| `training.dlite_l1_weight` | Full probability L1 coefficient, without a factor of one half. |
+| `training.dlite_base_ce_weight` | Optional CE through the frozen target head; default 0. |
+| `training.dlite_base_ce_decay_gamma` | Optional position decay for base-head CE. |

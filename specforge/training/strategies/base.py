@@ -116,6 +116,9 @@ class DraftTrainStrategy(abc.ABC):
         """Select the keys this strategy persists as draft weights."""
         return state_dict
 
+    def before_optimizer_step(self) -> None:
+        """Optionally exclude gradients before normalization, clipping and Adam."""
+
 
 def _prepare_eagle_target(
     *,

@@ -310,7 +310,7 @@ def _online_schedule_payload(cfg: Config, *, num_prompts: int) -> dict:
         batch_size=cfg.training.batch_size,
         accumulation_steps=cfg.training.accumulation_steps,
     )
-    return {
+    payload = {
         "version": 1,
         "total_steps": total_steps,
         "num_prompts": num_prompts,
@@ -320,9 +320,23 @@ def _online_schedule_payload(cfg: Config, *, num_prompts: int) -> dict:
         "batch_size": cfg.training.batch_size,
         "accumulation_steps": cfg.training.accumulation_steps,
     }
+    if (
+        getattr(cfg.training, "strategy", None) == "dlite"
+        and cfg.training.dlite_mode == "two_stage"
+    ):
+        t = cfg.training
+        quantum = dp_size * t.batch_size * t.accumulation_steps
+        epochs = (t.dlite_stage1_epochs, t.dlite_stage1_epochs + 1, t.num_epochs)
+        boundaries = [num_prompts * epoch // quantum for epoch in epochs]
+        if any(end <= start for start, end in zip([0] + boundaries[:-1], boundaries)):
+            raise ValueError(
+                "DLite needs at least one complete optimizer window in every phase"
+            )
+        payload["dlite_phase_boundaries"] = boundaries
+    return payload
 
 
-def _read_online_total_steps(cfg: Config, channel_path: str) -> int:
+def _read_online_schedule(cfg: Config, channel_path: str) -> dict:
     """Read and validate the producer-owned online schedule contract."""
     schedule_path = channel_path + _ONLINE_SCHEDULE_SUFFIX
     _wait_for(
@@ -363,7 +377,17 @@ def _read_online_total_steps(cfg: Config, channel_path: str) -> int:
             f"online schedule record {schedule_path} has invalid "
             f"total_steps={total_steps!r}"
         )
-    return total_steps
+    if getattr(cfg.training, "strategy", None) == "dlite":
+        expected_schedule = _online_schedule_payload(
+            cfg, num_prompts=payload["num_prompts"]
+        )
+        if payload != expected_schedule:
+            raise ValueError("DLite producer and consumer phase schedules differ")
+    return payload
+
+
+def _read_online_total_steps(cfg: Config, channel_path: str) -> int:
+    return _read_online_schedule(cfg, channel_path)["total_steps"]
 
 
 def _optional_timeout_s(name: str) -> Optional[float]:
@@ -676,7 +700,9 @@ def _build_online(
             raise ValueError(
                 f"no prompts satisfy {algorithm.name} training eligibility"
             )
-        if cfg.training.total_steps is None and cfg.training.max_steps is None:
+        if cfg.training.strategy == "dlite" or (
+            cfg.training.total_steps is None and cfg.training.max_steps is None
+        ):
             schedule = _online_schedule_payload(cfg, num_prompts=len(prompts))
             _write_control(
                 channel_path + _ONLINE_SCHEDULE_SUFFIX,
@@ -824,9 +850,24 @@ def _build_online(
     from specforge.launch import build_disagg_online_consumer
 
     total_steps = cfg.training.total_steps
-    if total_steps is None and cfg.training.max_steps is None:
+    schedule = None
+    if cfg.training.strategy == "dlite":
+        schedule = _read_online_schedule(cfg, channel_path)
+        total_steps = schedule["total_steps"]
+    elif total_steps is None and cfg.training.max_steps is None:
         total_steps = _read_online_total_steps(cfg, channel_path)
     bundle = build_model_bundle(cfg)
+    if schedule is not None:
+        from dataclasses import replace
+
+        bundle.model.configure_online_schedule(schedule)
+        bundle.strategy_kwargs = replace(
+            bundle.strategy_kwargs,
+            resume_contract={
+                **bundle.strategy_kwargs.resume_contract,
+                "dlite_schedule": schedule,
+            },
+        )
     trainer = build_disagg_online_consumer(
         algorithm=algorithm,
         modality=modality,

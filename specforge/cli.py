@@ -274,7 +274,12 @@ def train(
     help="Export layout.",
 )
 @click.option("--checkpoint", required=True, metavar="PATH")
-@click.option("--draft-config", required=True, metavar="PATH")
+@click.option(
+    "--draft-config",
+    default=None,
+    metavar="PATH",
+    help="Draft JSON; omit for DLite checkpoints, which carry their resolved config.",
+)
 @click.option("--output-dir", required=True, metavar="PATH")
 @click.option("--vocab-mapping", default=None, metavar="PATH")
 @click.option(
@@ -293,7 +298,7 @@ def export(
     ctx: click.Context,
     target: str,
     checkpoint: str,
-    draft_config: str,
+    draft_config: Optional[str],
     output_dir: str,
     vocab_mapping: Optional[str],
     embedding_source: Optional[str],

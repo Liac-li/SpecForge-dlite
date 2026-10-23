@@ -1,0 +1,64 @@
+{
+  "architectures": [
+    "DLiteDraftModel"
+  ],
+  "model_type": "qwen3",
+  "num_target_layers": 32,
+  "num_hidden_layers": 5,
+  "hidden_size": 4096,
+  "intermediate_size": 12288,
+  "num_attention_heads": 16,
+  "num_key_value_heads": 4,
+  "head_dim": 256,
+  "vocab_size": 248320,
+  "block_size": 8,
+  "hidden_act": "silu",
+  "rms_norm_eps": 1e-06,
+  "attention_bias": false,
+  "attention_dropout": 0.0,
+  "initializer_range": 0.02,
+  "rope_theta": 10000000.0,
+  "rope_scaling": null,
+  "max_position_embeddings": 262144,
+  "tie_word_embeddings": false,
+  "layer_types": [
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention"
+  ],
+  "use_sliding_window": false,
+  "sliding_window": null,
+  "dtype": "bfloat16",
+  "bos_token_id": 248043,
+  "eos_token_id": 248044,
+  "pad_token_id": 248044,
+  "dlite_config": {
+    "architecture_version": "dlite_v2",
+    "model_role": "swa_teacher",
+    "chs_num_layers": 12,
+    "target_layer_ids": [
+      0,
+      1,
+      4,
+      7,
+      11,
+      14,
+      17,
+      20,
+      24,
+      27,
+      30,
+      31
+    ],
+    "history_layer_ids": [
+      0,
+      16,
+      31
+    ],
+    "swa_window_size": 512,
+    "sequential_head": "rnn",
+    "sequential_rank": 512
+  }
+}

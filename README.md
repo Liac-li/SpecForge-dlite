@@ -52,6 +52,7 @@ There are no method-specific Python training entry points.
 | **[DFlash2](https://inco.ai/blog/dflash2/)** | DFlash with grouped dynamic convolution and top-k path selection | [Online managed-local](./examples/configs/online/disaggregated/managed-local/qwen3.6-27b-dflash2.yaml) | [D-PACE](https://arxiv.org/abs/2605.18810)|
 | **[Domino](https://arxiv.org/html/2605.29707v1)** | DFlash with GRU logit correction | [Online external](./examples/configs/online/disaggregated/external/qwen3-8b-domino.yaml) / [Offline colocated](./examples/configs/offline/colocated/qwen3-8b-domino.yaml) / [Online managed-local](./examples/configs/online/disaggregated/managed-local/qwen3-8b-domino-2server-dp2.yaml) | — |
 | **[DSpark](https://arxiv.org/abs/2607.05147)** | Confidence-Scheduled Semi-Autoregressive Generation | [Online external](./examples/configs/online/disaggregated/external/qwen3-4b-dspark.yaml) / [Offline colocated](./examples/configs/offline/colocated/qwen3-4b-dspark.yaml) | — |
+| **[DLite](https://github.com/SJTU-DAI-Sys/DLite)** | History-free student with a sequential head; teacher and two-stage training | [Qwen3.5-9B managed-local recipe](./docs/recipes/qwen3.5-9b-dlite.md) | Training and HF export; serving integration pending |
 
 See the [training guide](./docs/sections/basic_usage/training.md) for the supported
 method/topology matrix and the

@@ -246,6 +246,10 @@ class _ConfiguredOptimizerFactory:
     def __init__(self, cfg: Config) -> None:
         self.cfg = cfg
         self.total_steps = cfg.training.total_steps or cfg.training.max_steps
+        if cfg.training.strategy == "dlite":
+            # A short smoke run truncates the finite schedule; it must not
+            # compress the student phases or restart their shared scheduler.
+            self.total_steps = None
 
     def configure_total_steps(self, total_steps: int) -> None:
         if self.total_steps is None:
@@ -369,6 +373,8 @@ def _prompt_cache_key(
         "strategy": cfg.training.strategy,
         "input_modality": cfg.model.input_modality,
     }
+    if cfg.training.strategy == "dlite":
+        identity["dlite_teacher_checkpoint"] = cfg.model.dlite_teacher_checkpoint_path
     return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
 
 
